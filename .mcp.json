@@ -1,12 +1,11 @@
 {
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
     "usectx": {
       "type": "stdio",
       "command": "./bin/usectx-mcp-stdio.mjs"
     },
     "usectx-remote": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "https://ctx.op0.ai/mcp"
     }
   }

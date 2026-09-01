@@ -215,8 +215,9 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
             writeFileSync(sessionPath, JSON.stringify(sessionPayload, null, 2) + "\n", { encoding: "utf8", mode: 0o600 });
             try { chmodSync(sessionPath, 0o600); } catch {}
 
-            // Configure local .cursor/mcp.json and global configs
             const mcpRemoteUrl = `${origin.replace(/\/$/u, "")}/mcp`;
+            const writeGlobalMcp = args.includes("--global");
+            const written = [];
             const updateConfig = (filePath) => {
               try {
                 mkdirSync(dirname(filePath), { recursive: true });
@@ -230,24 +231,29 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
                   headers: { Authorization: `Bearer ${mintedToken}` },
                 };
                 writeFileSync(filePath, JSON.stringify(cfg, null, 2) + "\n");
+                written.push(filePath);
               } catch {}
             };
 
-            const localCursorPath = resolve(".cursor", "mcp.json");
-            if (existsSync(localCursorPath)) {
-              try {
-                const content = readFileSync(localCursorPath, "utf8");
-                if (!content.includes("usectx-mcp-stdio.mjs")) {
-                  updateConfig(localCursorPath);
-                }
-              } catch {}
+            if (writeGlobalMcp) {
+              updateConfig(resolve(home, ".cursor", "mcp.json"));
+              if (process.platform === "darwin") {
+                const claudePath = resolve(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+                if (existsSync(dirname(claudePath))) updateConfig(claudePath);
+              } else if (process.platform === "linux") {
+                const claudePath = resolve(home, ".config", "Claude", "claude_desktop_config.json");
+                if (existsSync(dirname(claudePath))) updateConfig(claudePath);
+              }
             }
-            updateConfig(resolve(home, ".cursor", "mcp.json"));
 
             process.stdout.write("\n================================================================\n");
             process.stdout.write(`✓ Logged in as ${pollData.email || "user"} (workspace: ${workspaceId})\n`);
             process.stdout.write(`✓ Token saved to ${tokenPath}\n`);
-            process.stdout.write("✓ Configured MCP server in .cursor/mcp.json and Claude config\n");
+            if (written.length > 0) {
+              for (const path of written) process.stdout.write(`✓ Wrote MCP to ${path}\n`);
+            } else {
+              process.stdout.write("✓ MCP client files not written (pass --global for ~/.cursor/mcp.json)\n");
+            }
             process.stdout.write("================================================================\n\n");
             process.stdout.write("Attach prompt for Cursor / Claude Code / AI Agents:\n");
             process.stdout.write(`"Attach usectx memory from ${mcpRemoteUrl} using my workspace token, verify readiness at /readyz, and retrieve indexed project context."\n\n`);
