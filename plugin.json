@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "usectx",
+  "version": "0.1.0",
+  "description": "usectx Memory: stdio MCP, skills, hooks, and CLI for agent retrieval and code graph navigation.",
+  "author": {
+    "name": "op0",
+    "url": "https://op0.ai"
+  },
+  "homepage": "https://github.com/op0ai/usectx",
+  "repository": "https://github.com/op0ai/usectx",
+  "license": "MIT",
+  "keywords": ["context", "memory", "code-graph", "mcp", "usectx", "agents"]
+}

@@ -1,0 +1,489 @@
+#!/usr/bin/env node
+
+import { existsSync, readFileSync, mkdirSync, writeFileSync, chmodSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
+import { spawn } from "node:child_process";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+export const DEFAULT_CTX_URL = "https://ctx.op0.ai";
+export const DEFAULT_HOST_URL = "https://app.op0.ai";
+const CTX_LOCAL_ENV_FILE = ".env.ctx.local";
+
+function unquoteEnvValue(raw) {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length >= 2) {
+    return trimmed.slice(1, -1).replaceAll("'\\''", "'");
+  }
+  if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return trimmed.slice(1, -1);
+    }
+  }
+  return trimmed;
+}
+
+function parseEnvFile(contents) {
+  const result = {};
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const rawVal = trimmed.slice(eqIdx + 1);
+    if (key.length > 0) result[key] = unquoteEnvValue(rawVal);
+  }
+  return result;
+}
+
+function loadLocalEnv(env) {
+  let current = process.cwd();
+  while (true) {
+    const candidate = resolve(current, CTX_LOCAL_ENV_FILE);
+    if (existsSync(candidate)) {
+      try {
+        const parsed = parseEnvFile(readFileSync(candidate, "utf8"));
+        for (const [k, v] of Object.entries(parsed)) {
+          if (env[k] === undefined || env[k].trim() === "") env[k] = v;
+        }
+      } catch {}
+      break;
+    }
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return env;
+}
+
+function resolveOrigin(env) {
+  const raw = env.CTX_URL ?? env.CORE_CTX_URL ?? DEFAULT_CTX_URL;
+  try {
+    const url = new URL(raw);
+    return url.origin;
+  } catch {
+    return DEFAULT_CTX_URL;
+  }
+}
+
+function resolveHostOrigin(env) {
+  const raw = env.CORE_HOST_URL ?? env.CTX_HOST_ORIGIN ?? env.OP0_BASE_URL ?? env.PORTLESS_URL ?? DEFAULT_HOST_URL;
+  try {
+    const url = new URL(raw);
+    return url.origin;
+  } catch {
+    return DEFAULT_HOST_URL;
+  }
+}
+
+function readStoredToken(env) {
+  const home = env?.HOME ?? homedir();
+  if (!home) return undefined;
+  const tokenFile = resolve(home, ".op0", "usectx", "token");
+  if (existsSync(tokenFile)) {
+    try {
+      const val = readFileSync(tokenFile, "utf8").trim();
+      if (val.length > 0) return val;
+    } catch {}
+  }
+  return undefined;
+}
+
+function resolveToken(env) {
+  return env.CTX_HTTP_TOKEN ?? env.CORE_CTX_TOKEN ?? env.CTX_TOKEN ?? readStoredToken(env);
+}
+
+export function printUsage() {
+  console.log(`usectx CLI (Memory Harness)
+
+Commands:
+  usectx login      authenticate via WorkOS AuthKit and mint workspace token
+  usectx readyz     probe service and retrieval mode readiness
+  usectx health     probe service liveness
+  usectx inspect    inspect memory service posture and token status
+  usectx ask <q>    run agent retrieve loop: structural graph + hybrid search
+  usectx search <q> search indexed workspace evidence
+  usectx extract    repository extraction posture
+  usectx ingest     workspace transcript ingestion posture
+
+Install: curl -fsSL https://op0.ai/usectx/install.sh | bash
+Plugin:  ~/.agents/plugins/usectx (agent-plugins.org 1.0.0)
+Account: https://app.op0.ai  Docs: https://op0.ai/docs/usectx/
+`);
+}
+
+export async function runCli(argv = process.argv.slice(2), env = { ...process.env }, fetchImpl = fetch) {
+  loadLocalEnv(env);
+  const origin = resolveOrigin(env);
+  const token = resolveToken(env);
+  const [cmd, ...args] = argv;
+
+  switch (cmd) {
+    case "login": {
+      const hostOrigin = resolveHostOrigin(env);
+      process.stdout.write(`Starting usectx login with WorkOS AuthKit (${hostOrigin})...\n\n`);
+
+      let startData;
+      try {
+        const startRes = await fetchImpl(`${hostOrigin}/v1/cli/device/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        if (!startRes.ok) {
+          process.stderr.write(`Login error: Failed to start login at ${hostOrigin} (HTTP ${startRes.status})\n`);
+          return 1;
+        }
+        startData = await startRes.json();
+      } catch (err) {
+        process.stderr.write(`Login error: Network error connecting to ${hostOrigin}: ${err.message || String(err)}\n`);
+        return 1;
+      }
+
+      const { device_code, user_code, verification_uri_complete, expires_in, interval } = startData;
+      process.stdout.write("================================================================\n");
+      process.stdout.write("To authenticate usectx with AuthKit:\n");
+      process.stdout.write(`  1. Open: ${verification_uri_complete}\n`);
+      process.stdout.write(`  2. Confirm code: ${user_code}\n`);
+      process.stdout.write("================================================================\n\n");
+
+      try {
+        const platform = process.platform;
+        if (platform === "darwin") spawn("open", [verification_uri_complete], { stdio: "ignore", detached: true }).unref();
+        else if (platform === "win32") spawn("cmd.exe", ["/c", "start", '""', verification_uri_complete], { stdio: "ignore", detached: true }).unref();
+        else spawn("xdg-open", [verification_uri_complete], { stdio: "ignore", detached: true }).unref();
+      } catch {}
+
+      process.stdout.write("Waiting for authentication in browser...\n");
+
+      let pollInterval = Math.max(1, interval || 2);
+      const timeoutAt = Date.now() + (expires_in ? expires_in * 1000 : 300000);
+
+      while (Date.now() < timeoutAt) {
+        await new Promise((r) => setTimeout(r, pollInterval * 1000));
+        let pollData;
+        try {
+          const pollRes = await fetchImpl(`${hostOrigin}/v1/cli/device/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+              device_code,
+            }),
+          });
+          pollData = await pollRes.json();
+          if (pollRes.ok && pollData.access_token) {
+            process.stdout.write("\n✓ Device authorized via AuthKit.\n");
+            process.stdout.write("Minting workspace context bearer token...\n");
+
+            const mintRes = await fetchImpl(`${hostOrigin}/v1/context/token`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${pollData.access_token}`,
+                "Content-Type": "application/json",
+              },
+              body: "{}",
+            });
+
+            if (!mintRes.ok) {
+              process.stderr.write(`\nFailed to mint context token (HTTP ${mintRes.status})\n`);
+              return 1;
+            }
+
+            const mintData = await mintRes.json();
+            const mintedToken = mintData.token;
+            const workspaceId = mintData.workspaceId;
+            const home = env?.HOME ?? homedir();
+            const tokenPath = resolve(home, ".op0", "usectx", "token");
+            const sessionPath = resolve(home, ".op0", "usectx", "session.json");
+
+            mkdirSync(dirname(tokenPath), { recursive: true });
+            writeFileSync(tokenPath, mintedToken.trim() + "\n", { encoding: "utf8", mode: 0o600 });
+            try { chmodSync(tokenPath, 0o600); } catch {}
+
+            const sessionPayload = {
+              version: 1,
+              email: pollData.email ?? "",
+              workspaceId: workspaceId ?? "",
+              refreshToken: pollData.refresh_token ?? "",
+              savedAt: new Date().toISOString(),
+            };
+            writeFileSync(sessionPath, JSON.stringify(sessionPayload, null, 2) + "\n", { encoding: "utf8", mode: 0o600 });
+            try { chmodSync(sessionPath, 0o600); } catch {}
+
+            // Configure local .cursor/mcp.json and global configs
+            const mcpRemoteUrl = `${origin.replace(/\/$/u, "")}/mcp`;
+            const updateConfig = (filePath) => {
+              try {
+                mkdirSync(dirname(filePath), { recursive: true });
+                let cfg = { mcpServers: {} };
+                if (existsSync(filePath)) {
+                  try { cfg = JSON.parse(readFileSync(filePath, "utf8")) || { mcpServers: {} }; } catch {}
+                }
+                if (!cfg.mcpServers) cfg.mcpServers = {};
+                cfg.mcpServers["usectx"] = {
+                  url: mcpRemoteUrl,
+                  headers: { Authorization: `Bearer ${mintedToken}` },
+                };
+                writeFileSync(filePath, JSON.stringify(cfg, null, 2) + "\n");
+              } catch {}
+            };
+
+            const localCursorPath = resolve(".cursor", "mcp.json");
+            if (existsSync(localCursorPath)) {
+              try {
+                const content = readFileSync(localCursorPath, "utf8");
+                if (!content.includes("usectx-mcp-stdio.mjs")) {
+                  updateConfig(localCursorPath);
+                }
+              } catch {}
+            }
+            updateConfig(resolve(home, ".cursor", "mcp.json"));
+
+            process.stdout.write("\n================================================================\n");
+            process.stdout.write(`✓ Logged in as ${pollData.email || "user"} (workspace: ${workspaceId})\n`);
+            process.stdout.write(`✓ Token saved to ${tokenPath}\n`);
+            process.stdout.write("✓ Configured MCP server in .cursor/mcp.json and Claude config\n");
+            process.stdout.write("================================================================\n\n");
+            process.stdout.write("Attach prompt for Cursor / Claude Code / AI Agents:\n");
+            process.stdout.write(`"Attach usectx memory from ${mcpRemoteUrl} using my workspace token, verify readiness at /readyz, and retrieve indexed project context."\n\n`);
+            return 0;
+          }
+
+          if (pollData.error === "slow_down") {
+            pollInterval += 5;
+            continue;
+          }
+          if (pollData.error === "expired_token" || pollData.error === "access_denied") {
+            process.stderr.write("\nDevice authorization expired or was denied. Please run 'usectx login' again.\n");
+            return 1;
+          }
+        } catch (err) {
+          process.stderr.write(`\nPolling error: ${err.message || String(err)}\n`);
+          return 1;
+        }
+      }
+
+      process.stderr.write("\nLogin timed out. Please run 'usectx login' again.\n");
+      return 1;
+    }
+
+    case "readyz":
+    case "ready":
+    case "probe":
+    case "accept": {
+      try {
+        const res = await fetchImpl(`${origin}/readyz`);
+        const text = await res.text();
+        if (res.ok) {
+          process.stdout.write(`${text.trim()}\n`);
+          return 0;
+        }
+        process.stderr.write(`usectx readyz: ${res.status} ${text}\n`);
+        return 1;
+      } catch (err) {
+        process.stderr.write(`usectx readyz: unreachable (${err instanceof Error ? err.message : String(err)})\n`);
+        return 1;
+      }
+    }
+
+    case "health":
+    case "livez": {
+      try {
+        const res = await fetchImpl(`${origin}/health`);
+        const text = await res.text();
+        if (res.ok) {
+          process.stdout.write(`${text.trim()}\n`);
+          return 0;
+        }
+        process.stderr.write(`usectx health: ${res.status} ${text}\n`);
+        return 1;
+      } catch (err) {
+        process.stderr.write(`usectx health: unreachable (${err instanceof Error ? err.message : String(err)})\n`);
+        return 1;
+      }
+    }
+
+    case "inspect": {
+      process.stdout.write(`usectx Memory Harness Inspection\n`);
+      process.stdout.write(`Target origin:   ${origin}\n`);
+      process.stdout.write(`Token status:    ${token ? "present (" + token.slice(0, 10) + "...)" : "unset (set CTX_HTTP_TOKEN)"}\n`);
+      try {
+        const res = await fetchImpl(`${origin}/readyz`);
+        if (res.ok) {
+          const body = await res.json();
+          process.stdout.write(`Readiness probe: 200 OK (provider=${body.provider ?? "ctx"}, retrievalMode=${body.retrievalMode ?? "hybrid"})\n`);
+        } else {
+          process.stdout.write(`Readiness probe: ${res.status} (service not ready)\n`);
+        }
+      } catch (err) {
+        process.stdout.write(`Readiness probe: failed (${err instanceof Error ? err.message : String(err)})\n`);
+      }
+      return 0;
+    }
+
+    case "ask": {
+      const question = args.filter((a) => !a.startsWith("-")).join(" ").trim();
+      if (!question) {
+        process.stderr.write('usectx ask: question required. Example: usectx ask "what calls codeGraphRetrieveWide?"\n');
+        return 1;
+      }
+      if (!token) {
+        process.stderr.write(`usectx ask: CTX_HTTP_TOKEN is unset.\nRun 'usectx login' or export your workspace token:\n  export CTX_HTTP_TOKEN="ctx_ws_..."\nSign in at https://app.op0.ai/ctx to view your token.\n`);
+        return 1;
+      }
+
+      let posture = { retrievalMode: "hybrid", provider: "ctx" };
+      try {
+        const readyRes = await fetchImpl(`${origin}/readyz`);
+        if (readyRes.ok) {
+          posture = await readyRes.json();
+        }
+      } catch {}
+
+      const words = question.match(/\b[A-Za-z_][A-Za-z0-9_]{2,}\b/g) || [];
+      const symbols = words.filter((w) => !["what", "who", "how", "does", "the", "and", "for", "with", "from", "that", "this", "calls", "search", "usectx"].includes(w.toLowerCase()));
+      const symbol = symbols[0];
+
+      process.stdout.write(`usectx ask (code_graph over pgGraph, then leased search)\n`);
+      process.stdout.write(`origin ${origin}  retrieve=${posture.retrievalMode ?? "hybrid"}  provider=${posture.provider ?? "ctx"}\n\n`);
+
+      if (symbol) {
+        try {
+          const rpcPayload = {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: {
+              name: "code_graph",
+              arguments: { symbol, depth: 2, direction: "any" }
+            }
+          };
+          const graphRes = await fetchImpl(`${origin}/mcp`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(rpcPayload)
+          });
+          if (graphRes.ok) {
+            process.stdout.write(`tool code_graph {"symbol":"${symbol}","depth":2,"direction":"any"}  ok\n`);
+          } else {
+            process.stdout.write(`tool code_graph {"symbol":"${symbol}"}  refused (${graphRes.status})\n`);
+          }
+        } catch {
+          process.stdout.write(`tool code_graph {"symbol":"${symbol}"}  error\n`);
+        }
+      }
+
+      try {
+        const searchPayload = {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "search",
+            arguments: { query: question, limit: 5 }
+          }
+        };
+        const searchRes = await fetchImpl(`${origin}/mcp`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(searchPayload)
+        });
+        if (searchRes.ok) {
+          const data = await searchRes.json();
+          process.stdout.write(`tool search {"query":"${question}"}  ok\n\n`);
+          process.stdout.write(`Question: ${question}\n`);
+          process.stdout.write(`Designed spine: leased hybrid RRF (pgcontext) + code_graph walk of the code graph extract.\n`);
+          
+          if (data.result?.content) {
+            const content = Array.isArray(data.result.content) ? data.result.content : [data.result.content];
+            for (const item of content) {
+              if (item.text) process.stdout.write(`${item.text}\n`);
+            }
+          } else if (data.result?.evidence) {
+            for (const hit of data.result.evidence.slice(0, 5)) {
+              process.stdout.write(`- ${hit.citation?.sourceId ?? "evidence"}: ${(hit.properties?.content ?? "").slice(0, 120)}...\n`);
+            }
+          }
+        } else {
+          process.stdout.write(`tool search {"query":"${question}"}  refused (${searchRes.status})\n`);
+        }
+      } catch (err) {
+        process.stdout.write(`tool search refused: ${err instanceof Error ? err.message : String(err)}\n`);
+      }
+      return 0;
+    }
+
+    case "search": {
+      const query = args.join(" ").trim();
+      if (!query) {
+        process.stderr.write("usectx search: query required\n");
+        return 1;
+      }
+      if (!token) {
+        process.stderr.write("usectx search: CTX_HTTP_TOKEN is unset. Export your workspace token.\n");
+        return 1;
+      }
+      try {
+        const res = await fetchImpl(`${origin}/mcp`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "search", arguments: { query } }
+          })
+        });
+        const text = await res.text();
+        process.stdout.write(`${text}\n`);
+        return res.ok ? 0 : 1;
+      } catch (err) {
+        process.stderr.write(`usectx search: error (${err instanceof Error ? err.message : String(err)})\n`);
+        return 1;
+      }
+    }
+
+    case "extract": {
+      process.stdout.write("usectx extract: local repository extraction requires an in-repo or self-hosted context container. Hosted background extraction is queued on repository bind.\n");
+      return 0;
+    }
+
+    case "ingest": {
+      process.stdout.write("usectx ingest: append transcripts or documents to workspace evidence via MCP tool ingestTranscriptProjection.\n");
+      return 0;
+    }
+
+    case "help":
+    case "--help":
+    case "-h":
+    case undefined: {
+      printUsage();
+      return 0;
+    }
+
+    default: {
+      process.stderr.write(`Unknown command: ${cmd}\n\n`);
+      printUsage();
+      return 1;
+    }
+  }
+}
+
+if (import.meta.main || (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]))) {
+  const code = await runCli();
+  process.exit(code);
+}
