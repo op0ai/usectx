@@ -6,8 +6,14 @@ import { homedir } from "node:os";
 import { spawn } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  applyResolvedBearerToEnv,
+  DEFAULT_CTX_URL as TOKEN_DEFAULT_CTX_URL,
+  formatWhoami,
+  inspectWhoami,
+} from "./usectx-token.mjs";
 
-export const DEFAULT_CTX_URL = "https://ctx.op0.ai";
+export const DEFAULT_CTX_URL = TOKEN_DEFAULT_CTX_URL;
 export const DEFAULT_HOST_URL = "https://app.op0.ai";
 const CTX_LOCAL_ENV_FILE = ".env.ctx.local";
 
@@ -80,21 +86,8 @@ function resolveHostOrigin(env) {
   }
 }
 
-function readStoredToken(env) {
-  const home = env?.HOME ?? homedir();
-  if (!home) return undefined;
-  const tokenFile = resolve(home, ".op0", "usectx", "token");
-  if (existsSync(tokenFile)) {
-    try {
-      const val = readFileSync(tokenFile, "utf8").trim();
-      if (val.length > 0) return val;
-    } catch {}
-  }
-  return undefined;
-}
-
-function resolveToken(env) {
-  return env.CTX_HTTP_TOKEN ?? env.CORE_CTX_TOKEN ?? env.CTX_TOKEN ?? readStoredToken(env);
+function resolveToken(env, cwd = process.cwd()) {
+  return applyResolvedBearerToEnv(env, cwd).token;
 }
 
 export function printUsage() {
@@ -105,6 +98,7 @@ Commands:
   usectx readyz     probe service and retrieval mode readiness
   usectx health     probe service liveness
   usectx inspect    inspect memory service posture and token status
+  usectx whoami     origin, token path, workspace (does not print the secret)
   usectx ask <q>    run agent retrieve loop: structural graph + hybrid search
   usectx search <q> search indexed workspace evidence
   usectx extract    repository extraction posture
@@ -119,7 +113,8 @@ Account: https://app.op0.ai  Docs: https://op0.ai/docs/usectx/
 export async function runCli(argv = process.argv.slice(2), env = { ...process.env }, fetchImpl = fetch) {
   loadLocalEnv(env);
   const origin = resolveOrigin(env);
-  const token = resolveToken(env);
+  const bearer = applyResolvedBearerToEnv(env);
+  const token = bearer.token;
   const [cmd, ...args] = argv;
 
   switch (cmd) {
@@ -314,6 +309,16 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
       }
     }
 
+    case "whoami": {
+      const result = inspectWhoami(env);
+      process.stdout.write(formatWhoami(result));
+      if (!result.tokenPresent) {
+        process.stderr.write("usectx whoami: no token. Run `usectx login`.\n");
+        return 1;
+      }
+      return 0;
+    }
+
     case "inspect": {
       process.stdout.write(`usectx Memory Harness Inspection\n`);
       process.stdout.write(`Target origin:   ${origin}\n`);
@@ -356,7 +361,8 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
       const symbol = symbols[0];
 
       process.stdout.write(`usectx ask (code_graph over pgGraph, then leased search)\n`);
-      process.stdout.write(`origin ${origin}  retrieve=${posture.retrievalMode ?? "hybrid"}  provider=${posture.provider ?? "ctx"}\n\n`);
+      process.stdout.write(`origin ${origin}  retrieve=${posture.retrievalMode ?? "hybrid"}  provider=${posture.provider ?? "ctx"}\n`);
+      process.stdout.write(`bearer ${bearer.tokenPath}\n\n`);
 
       if (symbol) {
         try {
@@ -373,7 +379,7 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
             method: "POST",
             headers: {
               "content-type": "application/json",
-              "authorization": `Bearer ${token}`
+              Authorization: `Bearer ${token}`
             },
             body: JSON.stringify(rpcPayload)
           });
@@ -401,7 +407,7 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "authorization": `Bearer ${token}`
+            Authorization: `Bearer ${token}`
           },
           body: JSON.stringify(searchPayload)
         });
@@ -445,7 +451,7 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "authorization": `Bearer ${token}`
+            Authorization: `Bearer ${token}`
           },
           body: JSON.stringify({
             jsonrpc: "2.0",

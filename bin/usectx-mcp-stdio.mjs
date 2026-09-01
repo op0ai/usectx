@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import process from "node:process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
+import { applyResolvedBearerToEnv } from "./usectx-token.mjs";
 
 /**
  * Stdio MCP for Agent Plugins. Each stdin line is one JSON-RPC envelope, posted unchanged
@@ -168,21 +169,9 @@ export function accessHeaders(env, url) {
   };
 }
 
-export function readStoredToken(env) {
-  const home = env?.HOME ?? process.env.HOME ?? "";
-  if (!home) return undefined;
-  const tokenFile = resolve(home, ".op0", "usectx", "token");
-  if (existsSync(tokenFile)) {
-    try {
-      const val = readFileSync(tokenFile, "utf8").trim();
-      if (val.length > 0) return val;
-    } catch {}
-  }
-  return undefined;
-}
-
 export function resolveShimConfig(env) {
-  const token = env.CTX_HTTP_TOKEN ?? env.CORE_CTX_TOKEN ?? env.CTX_TOKEN ?? readStoredToken(env);
+  const bearer = applyResolvedBearerToEnv(env);
+  const token = bearer.token;
   if (typeof token !== "string" || token.trim().length === 0) {
     return { ok: false, error: "Run 'usectx login' or set CTX_HTTP_TOKEN" };
   }
@@ -273,7 +262,7 @@ export function createShim({ fetchImpl, env, writeStdout, writeStderr }) {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            authorization: `Bearer ${config.token}`,
+            Authorization: `Bearer ${config.token}`,
             ...config.accessHeaders,
           },
           body: line,
