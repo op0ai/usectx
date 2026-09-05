@@ -18,7 +18,7 @@ import { applyResolvedBearerToEnv } from "./usectx-token.mjs";
 export const DEFAULT_CTX_URL = "http://127.0.0.1:4790";
 export const MCP_JSONRPC_LIMIT = 1024 * 1024;
 const CTX_LOCAL_ENV_FILE = ".env.ctx.local";
-const COMPOSE_MARKER = "infra/self-host/compose.pgctx.yaml";
+const COMPOSE_MARKER = "infra/compose.pgctx.yaml";
 
 export function isHostedEnvironment(env) {
   if (env.NODE_ENV === "production") return true;

@@ -1,0 +1,38 @@
+{
+  "name": "@op0/ctx",
+  "version": "0.3.0-dev",
+  "description": "usectx context engine — leases, pocket_chunks, code_graph (Graphify), MCP search/health on Evokoa pgGraph/pgContext",
+  "type": "module",
+  "bin": {
+    "ctx": "./src/cli.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./http": {
+      "types": "./src/http/server.ts",
+      "import": "./src/http/server.ts"
+    }
+  },
+  "scripts": {
+    "build": "echo '@op0/ctx: stub — import from core (see scripts/import-from-core.md)'",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "doctor": "bun run ./src/cli.ts doctor",
+    "http": "bun run ./src/cli.ts http",
+    "inspect": "bun run ./src/cli.ts inspect"
+  },
+  "dependencies": {
+    "@op0/context-contract": "workspace:*",
+    "alchemy": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "files": ["src", "README.md"],
+  "license": "MIT"
+}

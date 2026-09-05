@@ -2,3 +2,13 @@ node_modules/
 .DS_Store
 *.local
 .op0/
+.env
+.env.*
+!.env.example
+.bun/
+dist/
+*.tsbuildinfo
+.turbo/
+coverage/
+.ctx/
+*.log

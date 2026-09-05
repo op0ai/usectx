@@ -1,0 +1,30 @@
+# usectx local Postgres (pggraph 1.2.0)
+#
+# Hybrid RRF needs pgcontext 0.3.0 — NOT included yet.
+# Without pgcontext, @op0/ctx must report degraded_lexical.
+#
+#   docker compose -f infra/compose.pgctx.yaml up -d
+
+services:
+  pggraph:
+    image: ghcr.io/evokoa/pggraph:1.2.0
+    container_name: usectx-pggraph
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: pgctx
+      POSTGRES_PASSWORD: pgctx
+      POSTGRES_DB: pgctx
+    volumes:
+      - usectx_pggraph_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgctx -d pgctx"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # pgcontext 0.3.0 gap: when available, either switch to a combined image
+    # or add an init/extension service. Do not claim hybrid until then.
+
+volumes:
+  usectx_pggraph_data:
