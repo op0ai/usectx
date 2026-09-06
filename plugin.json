@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "usectx",
-  "version": "0.2.0",
-  "description": "usectx Memory kit: attach, lease, hop, extract. Stdio MCP plus hosted URL. Tokens stay out of mcp.json.",
+  "version": "0.3.0",
+  "description": "usectx Memory kit: attach hosted MCP, session lease, hop, extract. Tokens stay out of mcp.json.",
   "author": {
     "name": "op0",
     "url": "https://op0.ai"
@@ -13,10 +13,17 @@
   "keywords": ["context", "memory", "code-graph", "mcp", "usectx"],
   "extensions": {
     "com.op0.kit": {
-      "version": "0.2.0",
-      "skills": ["usectx-attach", "usectx-retrieve", "usectx-code-graph", "usectx-extract"],
+      "version": "0.3.0",
+      "skills": [
+        "usectx-attach",
+        "usectx-session",
+        "usectx-retrieve",
+        "usectx-code-graph",
+        "usectx-extract"
+      ],
       "mcp": "mcp.json",
-      "cli": "./bin/usectx"
+      "cli": "./bin/usectx",
+      "agents": "AGENTS.md"
     }
   }
 }

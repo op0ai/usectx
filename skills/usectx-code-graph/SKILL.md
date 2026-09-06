@@ -9,6 +9,8 @@ description: Hop the code graph when walking callers, callees, or symbol structu
 
 If MCP `code_graph` is missing and `usectx` is not on PATH, **attach** first — [`../usectx-attach/SKILL.md`](../usectx-attach/SKILL.md). Do not login here.
 
+Hosted: tool exists; edges require a prior extract/bind for the workspace. Empty/`ROOTS` → extract path ([`../usectx-extract/SKILL.md`](../usectx-extract/SKILL.md)), not invented callers.
+
 ## 1. Pick the symbol
 
 Use the identifier as written in source (`codeGraphRetrieveWide`, not a sentence).
@@ -25,6 +27,6 @@ Directions: `in` callers, `out` callees, `any` both.
 
 ## 3. Stay on the graph
 
-Do not paste a repo-wide grep as a graph walk. If the index is empty, stop and extract.
+Do not paste a repo-wide grep as a graph walk. If the index is empty, stop and extract. Session rules: [`../usectx-session/SKILL.md`](../usectx-session/SKILL.md).
 
 **Done when:** the answer is edges plus symbols, or an honest `ROOTS` miss.

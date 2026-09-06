@@ -5,31 +5,15 @@ description: Attach usectx when MCP search, CLI retrieve, or a workspace bearer 
 
 # Attach
 
-Install the CLI, login, wire MCP. Bearer lives in `~/.op0/usectx/token` or `CTX_HTTP_TOKEN` — never in pack `mcp.json`.
+Wire hosted Memory so the session can lease. Bearer lives in `~/.op0/usectx/token` or `CTX_HTTP_TOKEN` — never in pack `mcp.json`.
 
-## 1. Install CLI
+No private core clone. Prefer hosted `https://ctx.op0.ai/mcp`. Optional local lab only when the user asks.
 
-```bash
-curl -fsSL https://op0.ai/usectx/install.sh | bash
-```
+## 1. Prefer MCP-only (stranger)
 
-Interactive plan + confirm: save the script, then `bash install.sh`. Home MCP: `bash install.sh --global`. Already unpacked: `export PATH="$PWD/usectx/bin:$PATH"` or `~/.op0/usectx/bin`.
+If the user already has a workspace token (https://app.op0.ai/ctx — not `/work`):
 
-**Done when:** `command -v usectx` succeeds, or `test -x ./usectx/bin/usectx` or `test -x "$HOME/.op0/usectx/bin/usectx"`.
-
-## 2. Login
-
-```bash
-usectx login
-```
-
-Token path: `~/.op0/usectx/token`. Or open https://app.op0.ai/ctx and `export CTX_HTTP_TOKEN=...`. Global Cursor/Claude MCP only with `usectx login --global`.
-
-**Done when:** `test -f "$HOME/.op0/usectx/token"` or `CTX_HTTP_TOKEN` is set.
-
-## 3. Wire MCP
-
-Hosted door: `https://ctx.op0.ai/mcp`. Client config the user owns may carry `Authorization: Bearer <token>`. Pack manifests do not.
+Write **client** config they own — project `.cursor/mcp.json` after they ask, or home `~/.cursor/mcp.json` with `--global` / explicit home consent:
 
 ```json
 {
@@ -44,11 +28,46 @@ Hosted door: `https://ctx.op0.ai/mcp`. Client config the user owns may carry `Au
 }
 ```
 
-Project file: `$PWD/.cursor/mcp.json` after the user asks. Home: `~/.cursor/mcp.json` only with `--global`. Stdio alternative: `node <pack>/bin/usectx-mcp-stdio.mjs` (reads the stored token).
+Same block for Claude Desktop (`claude_desktop_config.json`). Examples: [`../../examples/cursor.mcp.json`](../../examples/cursor.mcp.json).
 
-**Done when:** MCP `tools/list` returns the catalog, or `health` returns `{ "ok": true }`.
+**Done when:** MCP `tools/list` shows `search` (and usually `code_graph`, `health`).
 
-## 4. Probe
+## 2. Or install CLI + login
+
+Verified (git):
+
+```bash
+git clone --depth 1 https://github.com/op0ai/usectx.git
+cd usectx && bash install.sh --global
+usectx login --global
+```
+
+CDN convenience (mirrors this repo): `curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global`.
+
+Piped without `--global` stays project-local (`./usectx`) and does not write home MCP. Skills only (pinned CLI + commit; does not login):
+
+```bash
+npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
+```
+
+**Done when:** `test -f "$HOME/.op0/usectx/token"` or `CTX_HTTP_TOKEN` is set, and `command -v usectx` or `./usectx/bin/usectx` works.
+
+## 3. Stdio alternative (pack on disk)
+
+```json
+{
+  "mcpServers": {
+    "usectx": {
+      "command": "node",
+      "args": ["<pack>/bin/usectx-mcp-stdio.mjs"]
+    }
+  }
+}
+```
+
+No token in JSON. Process reads `CTX_HTTP_TOKEN` or `~/.op0/usectx/token`. Local lab: `CTX_URL=http://127.0.0.1:4790`.
+
+## 4. Probe + prove
 
 ```bash
 curl -sS https://ctx.op0.ai/readyz
@@ -57,8 +76,8 @@ usectx readyz
 
 **Done when:** HTTP 200 with `{"ok":true,"status":"ready","provider":"ctx"}` and `retrievalMode` `hybrid` or `lexical`.
 
-## 5. Prove retrieve
+Call MCP `search` `{ "query": "ready", "limit": 1 }` or `usectx ask "ready"`.
 
-Call MCP `search` with `{ "query": "ready", "limit": 1 }`, or `usectx ask "ready"`.
+**Done when:** ranked hits or honest empty. On 401 / missing tool → stay here. Do not skip to lease fiction.
 
-**Done when:** the agent can call MCP `search` or CLI retrieve (ranked hits or an honest empty). If either door is missing, stay on this skill — do not skip to lease or hop.
+Next: [`../usectx-session/SKILL.md`](../usectx-session/SKILL.md).
