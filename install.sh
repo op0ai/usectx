@@ -14,9 +14,10 @@
 #   --global    pack into ~/.op0/usectx; write ~/.local/bin, ~/.agents, home MCP
 #   --yes       skip TTY confirm (same as USECTX_INSTALL=1)
 #
-# Skills across IDEs (SKILL.md only — no login, no bearer):
-#   npx skills add op0ai/usectx
+# Skills across IDEs (pinned CLI + commit — no login, no bearer):
+#   npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
 #
+# Verified install: git clone https://github.com/op0ai/usectx.git && bash install.sh
 # Stranger MCP-only (no install): copy examples/cursor.mcp.json → .cursor/mcp.json
 # with a bearer from https://app.op0.ai/ctx (not /work).
 set -euo pipefail
@@ -115,7 +116,7 @@ print_plan() {
   if [[ "${write_agents}" == "1" ]]; then
     echo "  agents   ${agent_plugins_dir}"
   else
-    echo "  agents   skipped (use --global or: npx skills add op0ai/usectx)"
+    echo "  agents   skipped (use --global or: npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67)"
   fi
   if [[ "${write_home_mcp}" == "1" ]]; then
     echo "  cursor   ${home_cursor_mcp}"
@@ -288,8 +289,9 @@ echo ""
 echo "Next"
 echo "  usectx login                 # token → ${token_path}"
 echo "  usectx login --global        # also write ~/.cursor/mcp.json (+ Claude if present)"
-echo "  npx skills add op0ai/usectx  # SKILL.md into project (Cursor / Claude / Codex / …)"
+echo "  npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67"
 echo "  Stranger MCP-only: copy ${plugin_dir}/examples/cursor.mcp.json → .cursor/mcp.json (paste bearer)"
+echo "  Verified reinstall: git clone https://github.com/op0ai/usectx.git && bash install.sh --global"
 if [[ "${scope}" != "global" ]]; then
   echo "  export PATH=\"${plugin_dir}/bin:\$PATH\""
   echo "  bash install.sh --global     # home MCP / ~/.local/bin / ~/.agents"

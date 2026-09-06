@@ -34,12 +34,21 @@ Same block for Claude Desktop (`claude_desktop_config.json`). Examples: [`../../
 
 ## 2. Or install CLI + login
 
+Verified (git):
+
 ```bash
-curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+git clone --depth 1 https://github.com/op0ai/usectx.git
+cd usectx && bash install.sh --global
 usectx login --global
 ```
 
-Piped without `--global` stays project-local (`./usectx`) and does not write home MCP. Skills only: `npx skills add op0ai/usectx` (does not login).
+CDN convenience (mirrors this repo): `curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global`.
+
+Piped without `--global` stays project-local (`./usectx`) and does not write home MCP. Skills only (pinned CLI + commit; does not login):
+
+```bash
+npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
+```
 
 **Done when:** `test -f "$HOME/.op0/usectx/token"` or `CTX_HTTP_TOKEN` is set, and `command -v usectx` or `./usectx/bin/usectx` works.
 

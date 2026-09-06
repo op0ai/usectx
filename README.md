@@ -27,17 +27,26 @@ Write project `.cursor/mcp.json` (or home `~/.cursor/mcp.json`) with your token:
 }
 ```
 
-Copy from [`examples/cursor.mcp.json`](examples/cursor.mcp.json). Replace `CTX_HTTP_TOKEN`. Reload MCP. Call `search`.
+Copy from [`examples/cursor.mcp.json`](examples/cursor.mcp.json). Replace `CTX_HTTP_TOKEN`. Reload MCP. Call `search`. No installer required.
 
 ### B — Install CLI + skills (few steps)
 
+Verified install (git content-addressed):
+
 ```bash
-curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+git clone --depth 1 https://github.com/op0ai/usectx.git
+cd usectx && bash install.sh --global
 usectx login --global
-npx skills add op0ai/usectx
+npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
 ```
 
-`login --global` writes `~/.cursor/mcp.json` (and Claude Desktop if present). Skills land for Cursor / Claude Code / Codex / others.
+`login --global` writes `~/.cursor/mcp.json` (and Claude Desktop if present). Skills land for Cursor / Claude Code / Codex / others. `skills-lock.json` is written by the skills CLI in the **consumer** project — not in this kit.
+
+CDN convenience (same script as this repo; prefer clone when you want git integrity):
+
+```bash
+curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+```
 
 ### C — One agent prompt
 
@@ -75,14 +84,14 @@ Claude Code loads `.claude-plugin/plugin.json` and `skills/*/SKILL.md`. Agent Pl
 ## Install flags
 
 ```bash
-# Interactive plan + confirm (project-local ./usectx)
+# Verified: clone this repo, then:
+bash install.sh                  # interactive plan + confirm (project-local ./usectx)
+bash install.sh --global         # home pack + ~/.local/bin + home MCP
+
+# CDN convenience (mirrors this repo):
 curl -fsSL https://op0.ai/usectx/install.sh -o install-usectx.sh
 bash install-usectx.sh
-
-# Piped → project-local (no home MCP)
 curl -fsSL https://op0.ai/usectx/install.sh | bash
-
-# Home pack + ~/.local/bin + home Cursor/Claude MCP
 curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
 ```
 

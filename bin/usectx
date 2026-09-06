@@ -106,8 +106,10 @@ Commands:
   usectx extract    repository extraction posture
   usectx ingest     workspace transcript ingestion posture
 
-Install: curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+Install: git clone https://github.com/op0ai/usectx.git && bash install.sh --global
+         (CDN: curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global)
 Attach:  ${exampleMcp} → .cursor/mcp.json (hosted MCP, no core clone)
+Skills:  npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
 Plugin:  ~/.agents/plugins/usectx (agent-plugins.org 1.0.0)
 Account: https://app.op0.ai/ctx  Docs: https://op0.ai/docs/usectx/
 `);

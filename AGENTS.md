@@ -13,13 +13,16 @@ Attach hosted usectx so the session can **lease search** (and hop `code_graph` w
 3. Accept: `GET https://ctx.op0.ai/readyz` → `{"ok":true,"status":"ready","provider":"ctx","retrievalMode":"hybrid"}` (or `lexical` degraded).
 4. Prove: MCP `search` `{ "query": "ready", "limit": 1 }` or `usectx ask "ready"`.
 
-Install helpers (optional):
+Install helpers (optional). Prefer git clone for content integrity; pin skills CLI + commit:
 
 ```bash
-curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+git clone --depth 1 https://github.com/op0ai/usectx.git
+cd usectx && bash install.sh --global
 usectx login --global
-npx skills add op0ai/usectx
+npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
 ```
+
+CDN mirror of the same installer: `curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global`.
 
 ## Session rules
 
