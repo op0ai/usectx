@@ -44,7 +44,7 @@ for arg in "$@"; do
     --global) scope="global" ;;
     --yes|-y) assume_yes=1 ;;
     --help|-h)
-      sed -n '2,23p' "$0"
+      sed -n '2,24p' "$0"
       exit 0
       ;;
     *)
