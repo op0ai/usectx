@@ -47,7 +47,7 @@ CDN convenience (mirrors this repo): `curl -fsSL https://op0.ai/usectx/install.s
 Piped without `--global` stays project-local (`./usectx`) and does not write home MCP. Skills only (pinned CLI + commit; does not login):
 
 ```bash
-npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
+npx --yes skills@1.5.23 add op0ai/usectx@v0.3.0
 ```
 
 **Done when:** `test -f "$HOME/.op0/usectx/token"` or `CTX_HTTP_TOKEN` is set, and `command -v usectx` or `./usectx/bin/usectx` works.
