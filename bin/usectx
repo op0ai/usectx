@@ -91,6 +91,8 @@ function resolveToken(env, cwd = process.cwd()) {
 }
 
 export function printUsage() {
+  const packRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const exampleMcp = resolve(packRoot, "examples", "cursor.mcp.json");
   console.log(`usectx CLI (Memory Harness)
 
 Commands:
@@ -105,7 +107,7 @@ Commands:
   usectx ingest     workspace transcript ingestion posture
 
 Install: curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
-Attach:  examples/cursor.mcp.json → .cursor/mcp.json (hosted MCP, no core clone)
+Attach:  ${exampleMcp} → .cursor/mcp.json (hosted MCP, no core clone)
 Plugin:  ~/.agents/plugins/usectx (agent-plugins.org 1.0.0)
 Account: https://app.op0.ai/ctx  Docs: https://op0.ai/docs/usectx/
 `);
