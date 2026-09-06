@@ -2,17 +2,40 @@
 
 Memory kit for agents. Attach hosted MCP, lease search, hop the code graph.
 
-Version **0.3.0**. No private `core` clone. Tokens never live in pack `mcp.json`.
+Version **0.3.0** — see [CHANGELOG](CHANGELOG.md) / [RELEASE](RELEASE.md). No private `core` clone. Tokens never live in pack `mcp.json`. Engine/lab iterates separately (`usectx-lab`); this kit stays the thin public surface.
 
 Hosted accept: [`GET https://ctx.op0.ai/readyz`](https://ctx.op0.ai/readyz) → `retrievalMode: hybrid`.
 
-## Stranger path (one attach)
+## Stranger path (install → login → MCP search)
 
-You need a workspace bearer from [app.op0.ai/ctx](https://app.op0.ai/ctx) (or `usectx login`). Not `/work`.
+You need a workspace bearer from [app.op0.ai/ctx](https://app.op0.ai/ctx) (or `usectx login`). Not `/work`. Without a bearer, leased search refuses — agents must not invent memory.
 
-### A — Cursor / Claude Desktop MCP only (fastest)
+### 1 — Install (CLI + pack)
 
-Write project `.cursor/mcp.json` (or home `~/.cursor/mcp.json`) with your token:
+Verified install (git content-addressed):
+
+```bash
+git clone --depth 1 https://github.com/op0ai/usectx.git
+cd usectx && bash install.sh --global
+```
+
+CDN convenience (same script; prefer clone for git integrity):
+
+```bash
+curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+```
+
+### 2 — Login (mint bearer + optional home MCP)
+
+```bash
+usectx login --global
+```
+
+Writes `~/.op0/usectx/token` and home `~/.cursor/mcp.json` (Claude Desktop when present). Or skip the CLI and paste a bearer into client MCP only (step 3).
+
+### 3 — MCP search (prove attach)
+
+**Fastest without installer:** copy [`examples/cursor.mcp.json`](examples/cursor.mcp.json) → project `.cursor/mcp.json` (or home `~/.cursor/mcp.json`):
 
 ```json
 {
@@ -27,28 +50,17 @@ Write project `.cursor/mcp.json` (or home `~/.cursor/mcp.json`) with your token:
 }
 ```
 
-Copy from [`examples/cursor.mcp.json`](examples/cursor.mcp.json). Replace `CTX_HTTP_TOKEN`. Reload MCP. Call `search`. No installer required.
+Replace `CTX_HTTP_TOKEN`. Reload MCP. Call `search` with `{ "query": "ready", "limit": 1 }` — or `usectx ask "ready"`.
 
-### B — Install CLI + skills (few steps)
-
-Verified install (git content-addressed):
+Optional skills (Cursor / Claude Code / Codex / others):
 
 ```bash
-git clone --depth 1 https://github.com/op0ai/usectx.git
-cd usectx && bash install.sh --global
-usectx login --global
-npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
+npx --yes skills@1.5.23 add op0ai/usectx@v0.3.0
 ```
 
-`login --global` writes `~/.cursor/mcp.json` (and Claude Desktop if present). Skills land for Cursor / Claude Code / Codex / others. `skills-lock.json` is written by the skills CLI in the **consumer** project — not in this kit.
+`skills-lock.json` is written by the skills CLI in the **consumer** project — not in this kit.
 
-CDN convenience (same script as this repo; prefer clone when you want git integrity):
-
-```bash
-curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
-```
-
-### C — One agent prompt
+### One agent prompt
 
 After skills or MCP are present:
 

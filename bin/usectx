@@ -16,6 +16,20 @@ import {
 export const DEFAULT_CTX_URL = TOKEN_DEFAULT_CTX_URL;
 export const DEFAULT_HOST_URL = "https://app.op0.ai";
 const CTX_LOCAL_ENV_FILE = ".env.ctx.local";
+const PACK_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+export function readPackVersion(packRoot = PACK_ROOT) {
+  const versionPath = resolve(packRoot, "VERSION");
+  try {
+    if (existsSync(versionPath)) {
+      const raw = readFileSync(versionPath, "utf8").trim();
+      if (raw) return raw;
+    }
+  } catch {
+    // fall through
+  }
+  return "0.3.0";
+}
 
 function unquoteEnvValue(raw) {
   const trimmed = raw.trim();
@@ -91,11 +105,13 @@ function resolveToken(env, cwd = process.cwd()) {
 }
 
 export function printUsage() {
-  const packRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const packRoot = PACK_ROOT;
   const exampleMcp = resolve(packRoot, "examples", "cursor.mcp.json");
-  console.log(`usectx CLI (Memory Harness)
+  const kitVersion = readPackVersion(packRoot);
+  console.log(`usectx CLI (Memory Harness) ${kitVersion}
 
 Commands:
+  usectx version    print kit version (0.3.0)
   usectx login      authenticate via WorkOS AuthKit and mint workspace token
   usectx readyz     probe service and retrieval mode readiness
   usectx health     probe service liveness
@@ -109,7 +125,7 @@ Commands:
 Install: git clone https://github.com/op0ai/usectx.git && bash install.sh --global
          (CDN: curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global)
 Attach:  ${exampleMcp} → .cursor/mcp.json (hosted MCP, no core clone)
-Skills:  npx --yes skills@1.5.23 add op0ai/usectx@7269fe60fbe9e4cbf646dd6147f8339b8c924f67
+Skills:  npx --yes skills@1.5.23 add op0ai/usectx@v0.3.0
 Plugin:  ~/.agents/plugins/usectx (agent-plugins.org 1.0.0)
 Account: https://app.op0.ai/ctx  Docs: https://op0.ai/docs/usectx/
 `);
@@ -123,6 +139,13 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
   const [cmd, ...args] = argv;
 
   switch (cmd) {
+    case "version":
+    case "--version":
+    case "-V": {
+      process.stdout.write(`${readPackVersion()}\n`);
+      return 0;
+    }
+
     case "login": {
       const hostOrigin = resolveHostOrigin(env);
       process.stdout.write(`Starting usectx login with WorkOS AuthKit (${hostOrigin})...\n\n`);

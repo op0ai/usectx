@@ -1,6 +1,6 @@
 # usectx hooks and jobs
 
-Disclosed reference for the kit skills. Load when a skill points here.
+Kit **0.3.0** disclosed reference for the kit skills. Load when a skill points here. Engine/lab is out of band.
 
 ## Nouns
 
