@@ -16,6 +16,9 @@
 #
 # Skills across IDEs (SKILL.md only — no login, no bearer):
 #   npx skills add op0ai/usectx
+#
+# Stranger MCP-only (no install): copy examples/cursor.mcp.json → .cursor/mcp.json
+# with a bearer from https://app.op0.ai/ctx (not /work).
 set -euo pipefail
 
 DEFAULT_CTX_URL="https://ctx.op0.ai"
@@ -40,7 +43,7 @@ for arg in "$@"; do
     --global) scope="global" ;;
     --yes|-y) assume_yes=1 ;;
     --help|-h)
-      sed -n '2,22p' "$0"
+      sed -n '2,23p' "$0"
       exit 0
       ;;
     *)
@@ -97,9 +100,10 @@ print_plan() {
   echo ""
   echo "What"
   echo "  kit      Agent Plugins 1.0  (plugin.json + skills/ + mcp.json + CLI + hooks)"
-  echo "  skills   usectx-attach · usectx-retrieve · usectx-code-graph · usectx-extract"
+  echo "  skills   usectx-attach · usectx-session · usectx-retrieve · usectx-code-graph · usectx-extract"
   echo "  mcp      ${mcp_remote_url}  (no tokens in pack mcp.json)"
   echo "  cli      usectx"
+  echo "  agents   AGENTS.md stranger path (no core clone)"
   echo ""
   echo "Where  (${scope})"
   echo "  pack     ${plugin_dir}"
@@ -263,9 +267,11 @@ echo "Wrote"
 assurance "${plugin_dir}/plugin.json"
 assurance "${plugin_dir}/mcp.json"
 assurance "${plugin_dir}/skills/usectx-attach/SKILL.md"
+assurance "${plugin_dir}/skills/usectx-session/SKILL.md"
 assurance "${plugin_dir}/skills/usectx-retrieve/SKILL.md"
 assurance "${plugin_dir}/skills/usectx-code-graph/SKILL.md"
 assurance "${plugin_dir}/skills/usectx-extract/SKILL.md"
+assurance "${plugin_dir}/AGENTS.md"
 assurance "${plugin_dir}/bin/usectx"
 if [[ -n "${cli_shim}" ]]; then
   assurance "${cli_shim}"
@@ -280,7 +286,9 @@ done
 echo ""
 echo "Next"
 echo "  usectx login                 # token → ${token_path}"
-echo "  npx skills add op0ai/usectx  # SKILL.md into project .agents/skills/ (20+ IDEs)"
+echo "  usectx login --global        # also write ~/.cursor/mcp.json (+ Claude if present)"
+echo "  npx skills add op0ai/usectx  # SKILL.md into project (Cursor / Claude / Codex / …)"
+echo "  Stranger MCP-only: copy examples/cursor.mcp.json → .cursor/mcp.json (paste bearer)"
 if [[ "${scope}" != "global" ]]; then
   echo "  export PATH=\"${plugin_dir}/bin:\$PATH\""
   echo "  bash install.sh --global     # home MCP / ~/.local/bin / ~/.agents"

@@ -104,9 +104,10 @@ Commands:
   usectx extract    repository extraction posture
   usectx ingest     workspace transcript ingestion posture
 
-Install: curl -fsSL https://op0.ai/usectx/install.sh | bash
+Install: curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global
+Attach:  examples/cursor.mcp.json → .cursor/mcp.json (hosted MCP, no core clone)
 Plugin:  ~/.agents/plugins/usectx (agent-plugins.org 1.0.0)
-Account: https://app.op0.ai  Docs: https://op0.ai/docs/usectx/
+Account: https://app.op0.ai/ctx  Docs: https://op0.ai/docs/usectx/
 `);
 }
 
