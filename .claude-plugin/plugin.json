@@ -1,7 +1,7 @@
 {
   "name": "usectx",
   "description": "usectx Memory kit: attach hosted MCP, lease search in-session, hop code graph, extract when available.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": {
     "name": "op0",
     "url": "https://op0.ai"

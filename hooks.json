@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "./bin/usectx-hook.mjs sessionStart"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "./bin/usectx-hook.mjs beforeSubmitPrompt"
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": "./bin/usectx-hook.mjs beforeMCPExecution"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "./bin/usectx-hook.mjs sessionEnd"
+      }
+    ]
+  }
+}

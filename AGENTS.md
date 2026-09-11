@@ -19,12 +19,12 @@ Install helpers (optional). Prefer git clone for content integrity; pin skills C
 git clone --depth 1 https://github.com/op0ai/usectx.git
 cd usectx && bash install.sh --global
 usectx login --global
-npx --yes skills@1.5.23 add op0ai/usectx@v0.3.0
+npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1
 ```
 
 CDN mirror of the same installer: `curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global`.
 
-Kit version **0.3.0** — see [`CHANGELOG.md`](CHANGELOG.md). Engine/lab iterates separately.
+Kit version **0.3.1** — see [`CHANGELOG.md`](CHANGELOG.md). Engine/lab iterates separately.
 
 ## Session rules
 

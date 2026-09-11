@@ -28,7 +28,7 @@ export function readPackVersion(packRoot = PACK_ROOT) {
   } catch {
     // fall through
   }
-  return "0.3.0";
+  return "0.3.1";
 }
 
 function unquoteEnvValue(raw) {
@@ -111,7 +111,7 @@ export function printUsage() {
   console.log(`usectx CLI (Memory Harness) ${kitVersion}
 
 Commands:
-  usectx version    print kit version (0.3.0)
+  usectx version    print kit version (0.3.1)
   usectx login      authenticate via WorkOS AuthKit and mint workspace token
   usectx readyz     probe service and retrieval mode readiness
   usectx health     probe service liveness
@@ -121,11 +121,12 @@ Commands:
   usectx search <q> search indexed workspace evidence
   usectx extract    repository extraction posture
   usectx ingest     workspace transcript ingestion posture
+  usectx validate-hooks [file] validate hooks.json non-empty commands and contracts
 
 Install: git clone https://github.com/op0ai/usectx.git && bash install.sh --global
          (CDN: curl -fsSL https://op0.ai/usectx/install.sh | bash -s -- --global)
 Attach:  ${exampleMcp} → .cursor/mcp.json (hosted MCP, no core clone)
-Skills:  npx --yes skills@1.5.23 add op0ai/usectx@v0.3.0
+Skills:  npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1
 Plugin:  ~/.agents/plugins/usectx (agent-plugins.org 1.0.0)
 Account: https://app.op0.ai/ctx  Docs: https://op0.ai/docs/usectx/
 `);
@@ -504,6 +505,21 @@ export async function runCli(argv = process.argv.slice(2), env = { ...process.en
 
     case "ingest": {
       process.stdout.write("usectx ingest: append transcripts or documents to workspace evidence via MCP tool ingestTranscriptProjection.\n");
+      return 0;
+    }
+
+    case "validate-hooks": {
+      const { validateHooksFile } = await import("./usectx-validate-hooks.mjs");
+      const targetFile = args[0] || resolve(PACK_ROOT, "hooks.json");
+      const res = validateHooksFile(targetFile);
+      if (!res.valid) {
+        process.stderr.write(`usectx validate-hooks: FAILED for ${targetFile}\n`);
+        for (const err of res.errors) {
+          process.stderr.write(`  - ${err}\n`);
+        }
+        return 1;
+      }
+      process.stdout.write(`usectx validate-hooks: ${targetFile} is valid and all hooks are non-empty.\n`);
       return 0;
     }
 

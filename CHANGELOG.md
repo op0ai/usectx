@@ -4,6 +4,23 @@ All notable changes to the **usectx public Memory kit** live here.
 
 Engine work (buckets, doctor, native MCP door, extract container) ships in the private lab (`usectx-lab`) and is **not** versioned by this pack. This kit stays a thin attach / session / skills surface over hosted `https://ctx.op0.ai`.
 
+## [0.3.1] — 2026-09-11
+
+### Security hooks & Cursor Empty-hook fix
+
+- **Ship non-empty `hooks.json`**: declares `sessionStart`, `beforeSubmitPrompt`, `beforeMCPExecution`, and `sessionEnd` pointing to executable `./bin/usectx-hook.mjs`. Fixes native Cursor hook loader rejecting empty command declarations (`"Empty hook is not allowed"`).
+- **Security hook handler (`bin/usectx-hook.mjs`)**:
+  - Fail-closed JSON allow/deny output (never null or empty JSON).
+  - Bearer requirement on session start, prompt submission, and MCP tool execution.
+  - For `op0mt_` agent tokens, strictly restricts permitted tool catalog to `agent_identity`, `action_invoke`, and `packet_export`. All other tools fail closed cleanly.
+- **Hook validation gate (`bin/usectx-validate-hooks.mjs`)**:
+  - Static gate verifying that `hooks.json` exists, is valid JSON, contains all required hook events, and all handlers declare non-empty `command` strings referencing valid files.
+  - Exposed via CLI `usectx validate-hooks` and enforced during `install.sh`.
+- **Separate MCP client examples**:
+  - `examples/cursor.mcp.json`: human/workspace token pattern (`CTX_HTTP_TOKEN`).
+  - `examples/cursor.agent.mcp.json`: agent token pattern (`op0mt_`).
+- **Safeguard docs**: Updated `HOOKS.md`, `README.md`, and `examples/README.md` to document the security model and remind operators to never disable security hooks or safeguards.
+
 ## [0.3.0] — 2026-09-06
 
 ### Memory kit for agents
