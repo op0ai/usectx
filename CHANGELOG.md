@@ -4,6 +4,22 @@ All notable changes to the **usectx public Memory kit** live here.
 
 Engine work (buckets, doctor, native MCP door, extract container) ships in the private lab (`usectx-lab`) and is **not** versioned by this pack. This kit stays a thin attach / session / skills surface over hosted `https://ctx.op0.ai`.
 
+## [0.4.2] — 2026-09-11
+
+### Reconcile to Origin Empty-hook fail-closed contract
+
+Replaces the thin 0.3.1 `{ allowed, reason }` surface with Origin kit **0.4.2** security semantics.
+
+- **Canonical hook pack**: `hooks/hooks.json` + `hooks/usectx-hook.mjs`. Commands run via `node ./hooks/usectx-hook.mjs` (Node-on-PATH residual stays open). Repo-root `hooks.json` is kept identical for GH / Cursor project-root loaders.
+- **`failClosed: true`** on `beforeSubmitPrompt` and `beforeMCPExecution` so crash / timeout / invalid JSON blocks the action.
+- **Stdout contract** is `{ permission, continue }` (plus `user_message` on decisions). Never empty or null JSON — handler faults still emit a deny object.
+- **`op0mt_` allowlist** unchanged: `agent_identity`, `action_invoke`, `packet_export`.
+- **Workspace `clean` denied** for non-restricted tokens (orphan prune is not a default workspace MCP).
+- **validate-hooks gate** now also requires `failClosed` on the two security events and resolves `node ./hooks/…` script paths.
+- **Never disable security hooks.** Documented in `HOOKS.md`.
+
+Delta vs 0.3.1: richer Cursor-native decision fields, fail-closed handler flags, Origin `hooks/` layout, and explicit `clean` deny. Same empty-command rejection and `op0mt_` catalog.
+
 ## [0.3.1] — 2026-09-11
 
 ### Security hooks & Cursor Empty-hook fix

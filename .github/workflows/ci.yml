@@ -16,6 +16,6 @@ jobs:
         with:
           node-version: 22.x
       - name: Validate hooks
-        run: node ./bin/usectx-validate-hooks.mjs hooks.json
+        run: node ./bin/usectx-validate-hooks.mjs hooks/hooks.json
       - name: Run tests
         run: npm test

@@ -15,13 +15,13 @@
 #   --yes       skip TTY confirm (same as USECTX_INSTALL=1)
 #
 # Skills across IDEs (pinned CLI + release tag — no login, no bearer):
-#   npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1
+#   npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2
 #
 # Verified install: git clone https://github.com/op0ai/usectx.git && bash install.sh
 # Stranger path: install → usectx login --global → MCP search
 # MCP-only (no install): copy examples/cursor.mcp.json → .cursor/mcp.json
 # with a bearer from https://app.op0.ai/ctx (not /work).
-# Kit version: see VERSION / CHANGELOG.md (0.3.1). Engine iterates in usectx-lab.
+# Kit version: see VERSION / CHANGELOG.md (0.4.2). Engine iterates in usectx-lab.
 set -euo pipefail
 
 DEFAULT_CTX_URL="https://ctx.op0.ai"
@@ -118,7 +118,7 @@ print_plan() {
   if [[ "${write_agents}" == "1" ]]; then
     echo "  agents   ${agent_plugins_dir}"
   else
-    echo "  agents   skipped (use --global or: npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1)"
+    echo "  agents   skipped (use --global or: npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2)"
   fi
   if [[ "${write_home_mcp}" == "1" ]]; then
     echo "  cursor   ${home_cursor_mcp}"
@@ -166,6 +166,10 @@ if [[ -f "${cwd}/plugin.json" && -d "${cwd}/bin" && -f "${cwd}/install.sh" && "$
   if [[ -f "${cwd}/hooks.json" ]]; then
     cp "${cwd}/hooks.json" "${plugin_dir}/"
   fi
+  if [[ -d "${cwd}/hooks" ]]; then
+    mkdir -p "${plugin_dir}/hooks"
+    cp -R "${cwd}/hooks/"* "${plugin_dir}/hooks/"
+  fi
   if [[ -d "${cwd}/skills" ]]; then
     mkdir -p "${plugin_dir}/skills"
     cp -R "${cwd}/skills/"* "${plugin_dir}/skills/"
@@ -194,12 +198,18 @@ else
   curl -fsSL "${pack_url}" | tar -xz -C "${plugin_dir}"
 fi
 
-chmod 755 "${plugin_dir}/bin/usectx" "${plugin_dir}/bin/usectx-mcp-stdio.mjs" "${plugin_dir}/bin/usectx-hook.mjs" "${plugin_dir}/bin/usectx-validate-hooks.mjs" 2>/dev/null || true
+chmod 755 "${plugin_dir}/bin/usectx" "${plugin_dir}/bin/usectx-mcp-stdio.mjs" "${plugin_dir}/bin/usectx-hook.mjs" "${plugin_dir}/bin/usectx-validate-hooks.mjs" "${plugin_dir}/hooks/usectx-hook.mjs" 2>/dev/null || true
 
 # Validate hooks configuration so empty hooks cannot ship
-if [[ -f "${plugin_dir}/hooks.json" && -x "${plugin_dir}/bin/usectx-validate-hooks.mjs" ]]; then
+hooks_manifest=""
+if [[ -f "${plugin_dir}/hooks/hooks.json" ]]; then
+  hooks_manifest="${plugin_dir}/hooks/hooks.json"
+elif [[ -f "${plugin_dir}/hooks.json" ]]; then
+  hooks_manifest="${plugin_dir}/hooks.json"
+fi
+if [[ -n "${hooks_manifest}" && -f "${plugin_dir}/bin/usectx-validate-hooks.mjs" ]]; then
   if command -v node >/dev/null 2>&1; then
-    node "${plugin_dir}/bin/usectx-validate-hooks.mjs" "${plugin_dir}/hooks.json"
+    node "${plugin_dir}/bin/usectx-validate-hooks.mjs" "${hooks_manifest}"
   fi
 fi
 
@@ -301,10 +311,11 @@ assurance "${plugin_dir}/skills/usectx-retrieve/SKILL.md"
 assurance "${plugin_dir}/skills/usectx-code-graph/SKILL.md"
 assurance "${plugin_dir}/skills/usectx-extract/SKILL.md"
 assurance "${plugin_dir}/AGENTS.md"
+assurance "${plugin_dir}/hooks/hooks.json"
+assurance "${plugin_dir}/hooks/usectx-hook.mjs"
 assurance "${plugin_dir}/hooks.json"
 assurance "${plugin_dir}/examples/cursor.mcp.json"
 assurance "${plugin_dir}/bin/usectx"
-assurance "${plugin_dir}/bin/usectx-hook.mjs"
 assurance "${plugin_dir}/bin/usectx-validate-hooks.mjs"
 if [[ -n "${cli_shim}" ]]; then
   assurance "${cli_shim}"
@@ -320,7 +331,7 @@ echo ""
 echo "Next"
 echo "  usectx login                 # token → ${token_path}"
 echo "  usectx login --global        # also write ~/.cursor/mcp.json (+ Claude if present)"
-echo "  npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1"
+echo "  npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2"
 echo "  Stranger MCP-only: copy ${plugin_dir}/examples/cursor.mcp.json → .cursor/mcp.json (paste bearer)"
 echo "  Verified reinstall: git clone https://github.com/op0ai/usectx.git && bash install.sh --global"
 if [[ "${scope}" != "global" ]]; then

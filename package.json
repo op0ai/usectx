@@ -1,11 +1,11 @@
 {
   "name": "usectx",
-  "version": "0.3.1",
+  "version": "0.4.2",
   "description": "usectx Memory kit: attach hosted MCP, session lease, hop, extract.",
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "validate-hooks": "node ./bin/usectx-validate-hooks.mjs hooks.json"
+    "validate-hooks": "node ./bin/usectx-validate-hooks.mjs hooks/hooks.json"
   },
   "keywords": [
     "context",

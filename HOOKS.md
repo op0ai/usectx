@@ -1,6 +1,6 @@
 # usectx hooks and jobs
 
-Kit **0.3.1** disclosed reference for the kit skills. Load when a skill points here. Engine/lab is out of band.
+Kit **0.4.2** disclosed reference for the kit skills. Load when a skill points here. Engine/lab is out of band.
 
 ## Nouns
 
@@ -16,37 +16,42 @@ Kit **0.3.1** disclosed reference for the kit skills. Load when a skill points h
 
 **Never disable security hooks or safeguards.**
 
-Cursor native agent execution validates `hooks.json` before start. Empty hooks (`"command": ""` or empty command arrays) are rejected by native execution (`"Empty hook is not allowed"`).
+Cursor native agent execution validates hook commands before start. Empty hooks (`"command": ""` or empty command arrays) are rejected (`"Empty hook is not allowed"`). A crash, timeout, or invalid JSON on a `failClosed` hook blocks the action instead of failing open.
 
-The public kit defines non-empty security hooks pointing to `./bin/usectx-hook.mjs`:
+Canonical pack files:
 
-1. `sessionStart`: verifies bearer presence and readiness or refuses closed cleanly.
-2. `beforeSubmitPrompt`: enforces bearer requirement before submitting prompts to the model.
-3. `beforeMCPExecution`: fail-closed authorization gate for all MCP tool executions:
-   - Requires valid bearer token.
-   - For agent tokens (`op0mt_` prefix), strictly restricts tool access to:
-     - `agent_identity`
-     - `action_invoke`
-     - `packet_export`
-     All other tools are denied cleanly under `op0mt_`.
-   - Always produces valid JSON (never empty or null).
+- [`hooks/hooks.json`](hooks/hooks.json)
+- [`hooks/usectx-hook.mjs`](hooks/usectx-hook.mjs)
+
+Repo-root [`hooks.json`](hooks.json) is the same manifest so GH / Cursor project-root loaders stay aligned. Do not edit one without the other.
+
+Commands run via `node ./hooks/usectx-hook.mjs` (Node-on-PATH residual: `node` must be on PATH). Handler stdout is always `{ "permission", "continue" }` JSON — never empty, never null.
+
+1. `sessionStart`: verifies bearer presence or refuses closed.
+2. `beforeSubmitPrompt` (`failClosed: true`): enforces bearer before prompt submission (`continue`).
+3. `beforeMCPExecution` (`failClosed: true`): fail-closed authorization gate:
+   - Requires a valid bearer.
+   - `op0mt_` agent tokens are restricted to `agent_identity`, `action_invoke`, and `packet_export`.
+   - Non-restricted workspace tokens may not invoke workspace `clean`.
+   - Always produces valid `{ permission, continue }` JSON.
 4. `sessionEnd`: audit confirmation and clean shutdown.
 
 ### Validating Hooks
 
-Run the validator gate:
 ```bash
 usectx validate-hooks
 # or directly:
-node ./bin/usectx-validate-hooks.mjs hooks.json
+node ./bin/usectx-validate-hooks.mjs hooks/hooks.json
 ```
+
+The gate rejects empty commands, missing security events, missing hook scripts, and missing `failClosed: true` on `beforeSubmitPrompt` / `beforeMCPExecution`.
 
 ## Jobs
 
 - `extract` — source → code graph (local container or hosted repository bind)
 - `ingestTranscriptProjection` — turns → evidence (MCP when catalog lists it)
 - `resolveSettledEvidence` — pending → queryable
-- `clean` — orphan prune (dry-run first)
+- `clean` — orphan prune (dry-run first). Hook-denied for non-restricted workspace tokens.
 
 ## Hosted vs local (kit-facing)
 
@@ -73,5 +78,5 @@ node ./bin/usectx-validate-hooks.mjs hooks.json
 - `usectx whoami` — origin and workspace meta (no secret print)
 - `usectx ask "<q>"` — hop then lease
 - `usectx search "<q>"` — search indexed workspace evidence
-- `usectx validate-hooks` — validate non-empty commands and hook contracts
+- `usectx validate-hooks` — validate non-empty commands, failClosed, and hook contracts
 - `usectx extract` / `usectx ingest` / `usectx inspect` — posture helpers; extract/ingest tell honesty when the door is absent

@@ -2,7 +2,7 @@
 
 Memory kit for agents. Attach hosted MCP, lease search, hop the code graph.
 
-Version **0.3.1** — see [CHANGELOG](CHANGELOG.md) / [RELEASE](RELEASE.md). No private `core` clone. Tokens never live in pack `mcp.json`. Engine/lab iterates separately (`usectx-lab`); this kit stays the thin public surface.
+Version **0.4.2** — see [CHANGELOG](CHANGELOG.md) / [RELEASE](RELEASE.md). No private `core` clone. Tokens never live in pack `mcp.json`. Engine/lab iterates separately (`usectx-lab`); this kit stays the thin public surface.
 
 Hosted accept: [`GET https://ctx.op0.ai/readyz`](https://ctx.op0.ai/readyz) → `retrievalMode: hybrid`.
 
@@ -55,7 +55,7 @@ Replace `CTX_HTTP_TOKEN`. Reload MCP. Call `search` with `{ "query": "ready", "l
 Optional skills (Cursor / Claude Code / Codex / others):
 
 ```bash
-npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1
+npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2
 ```
 
 `skills-lock.json` is written by the skills CLI in the **consumer** project — not in this kit.

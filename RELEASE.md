@@ -1,4 +1,4 @@
-# usectx 0.3.1 — Memory kit for agents
+# usectx 0.4.2 — Memory kit for agents
 
 **Attach in one login. Lease search. No core clone.**
 
@@ -14,12 +14,13 @@ usectx login --global
 
 Or MCP-only: copy `examples/cursor.mcp.json` → `.cursor/mcp.json`, replace the bearer from [app.op0.ai/ctx](https://app.op0.ai/ctx).
 
-Skills (optional): `npx --yes skills@1.5.23 add op0ai/usectx@v0.3.1`
+Skills (optional): `npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2`
 
 ### Works today
 
 - Hosted leased `search`, `code_graph` (when indexed), `health` / `/readyz`
 - Session skill loop: attach → lease → refuse closed → hop → settle when ingest is in the catalog
+- Origin 0.4.2 hooks: `{ permission, continue }`, `failClosed` on prompt + MCP, `op0mt_` catalog, workspace `clean` deny
 
 ### Needs your login
 
