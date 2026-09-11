@@ -5,7 +5,7 @@ description: Run a usectx agent session — lease search on start, refuse withou
 
 # Session
 
-Agent-session loop over hosted Memory (kit **0.3.0**). Infinite context is leased retrieve, not a bigger window.
+Agent-session loop over hosted Memory (kit **0.3.1**). Infinite context is leased retrieve, not a bigger window.
 
 If MCP `search` is missing and `usectx` is not on PATH → **attach** first — [`../usectx-attach/SKILL.md`](../usectx-attach/SKILL.md).
 

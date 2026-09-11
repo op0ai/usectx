@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "usectx": {
+      "url": "https://ctx.op0.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer op0mt_AGENT_TOKEN"
+      }
+    }
+  }
+}
