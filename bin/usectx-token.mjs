@@ -53,6 +53,10 @@ export function resolveCtxCliBearer(env = process.env, cwd = process.cwd()) {
   if (fromAlias !== undefined) {
     return { token: fromAlias, source: "CTX_TOKEN", tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
   }
+  const fromHostGrant = normalizeCtxEnvToken(env.OP0MT_TOKEN);
+  if (fromHostGrant !== undefined) {
+    return { token: fromHostGrant, source: "OP0MT_TOKEN", tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+  }
   for (const candidate of resolveProjectTokenCandidates(cwd)) {
     if (candidate === homeTokenPath) continue;
     const project = readTokenFile(candidate);

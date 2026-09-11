@@ -77,7 +77,7 @@ export function handleSessionStart(input = {}, env = process.env, cwd = process.
   const bearer = resolveCtxCliBearer(env, cwd);
   if (!bearer.token) {
     return failClosedDecision(
-      "Missing usectx bearer token. Run 'usectx login' or set CTX_HTTP_TOKEN."
+      "Missing usectx bearer token. Run 'usectx login', set CTX_HTTP_TOKEN, or configure a Host op0mt_ grant (OP0MT_TOKEN). Never paste a workspace bearer into marketplace plugin config."
     );
   }
   return decision("allow", {
@@ -103,7 +103,9 @@ export function handleBeforeMCPExecution(input = {}, env = process.env, cwd = pr
   const toolName = resolveToolName(input);
 
   if (!token) {
-    return failClosedDecision("Denied: Bearer token is missing. MCP execution fails closed.");
+    return failClosedDecision(
+      "Denied: Bearer token is missing. MCP execution fails closed. Set a Host op0mt_ grant (OP0MT_TOKEN) or CTX_HTTP_TOKEN — never a workspace bearer in marketplace plugin config."
+    );
   }
 
   if (isRestrictedAgentToken(token)) {

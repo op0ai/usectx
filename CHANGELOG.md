@@ -20,6 +20,16 @@ Replaces the thin 0.3.1 `{ allowed, reason }` surface with Origin kit **0.4.2** 
 
 Delta vs 0.3.1: richer Cursor-native decision fields, fail-closed handler flags, Origin `hooks/` layout, and explicit `clean` deny. Same empty-command rejection and `op0mt_` catalog.
 
+### Marketplace packaging (still 0.4.2)
+
+Public-kit manifests for Cursor Marketplace, Grok Build, and cursor.directory. No version bump.
+
+- **Cursor Plugin**: `.cursor-plugin/plugin.json` + `.cursor-plugin/mcp.json` with `${OP0MT_TOKEN}` (Host grant only). Root Agent Plugin `plugin.json` unchanged.
+- **Grok Build**: `.grok-plugin/plugin.json` and a single-plugin `.grok-plugin/marketplace.json` for `grok plugin marketplace add`.
+- **Docs**: `docs/marketplace-submission.md` (Cursor publish checklist, xAI SHA-pinned entry template, cursor.directory form). Ready catalog JSON: `docs/marketplace/xai-official.entry.json`.
+- **Honest surface**: this GH kit does not ship `usectx agent` / `usectx packet` CLIs. `op0mt_` grants stay limited to hosted `agent_identity`, `action_invoke`, `packet_export`.
+- Bearer resolver also reads `OP0MT_TOKEN` so marketplace hooks see the Host grant without a workspace bearer in plugin config.
+
 ## [0.3.1] — 2026-09-11
 
 ### Security hooks & Cursor Empty-hook fix

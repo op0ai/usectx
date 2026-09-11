@@ -1,0 +1,27 @@
+{
+  "name": "usectx",
+  "displayName": "usectx",
+  "version": "0.4.2",
+  "description": "Public usectx Memory kit: attach hosted MCP, session lease, hop the code graph. Marketplace installs require a Host op0mt_ grant — never a workspace bearer.",
+  "author": {
+    "name": "op0"
+  },
+  "homepage": "https://github.com/op0ai/usectx",
+  "repository": "https://github.com/op0ai/usectx",
+  "license": "MIT",
+  "keywords": ["usectx", "op0", "ctx.op0.ai"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.cursor-plugin/mcp.json",
+  "variables": {
+    "type": "object",
+    "properties": {
+      "OP0MT_TOKEN": {
+        "type": "string",
+        "title": "Host op0mt_ grant",
+        "description": "Host-issued op0mt_ agent grant from app.op0.ai. Required for marketplace MCP. Never a workspace bearer (ctx_ws_ / CTX_HTTP_TOKEN)."
+      }
+    },
+    "required": ["OP0MT_TOKEN"]
+  }
+}

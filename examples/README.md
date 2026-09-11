@@ -47,5 +47,6 @@ For automated agents and sandboxes operating with scoped `op0mt_` credentials, s
 - Skills: `npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2` then follow `usectx-attach` → `usectx-session`.
 - Workspace `clean` is hook-denied for non-restricted tokens. Never disable security hooks.
 - Pack manifests (`mcp.json`, `.mcp.json`) intentionally omit Authorization.
+- Marketplace Cursor Plugin MCP (`.cursor-plugin/mcp.json`) uses `${OP0MT_TOKEN}` — a Host `op0mt_` grant, never a workspace bearer. See [`docs/marketplace-submission.md`](../docs/marketplace-submission.md).
 - Optional local lab: point stdio at `./bin/usectx-mcp-stdio.mjs` with `CTX_URL` / token in the environment — see repo-root `mcp.json`.
 - Verified kit install: `git clone https://github.com/op0ai/usectx.git && bash install.sh --global`.
