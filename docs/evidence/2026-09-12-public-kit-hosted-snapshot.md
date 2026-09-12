@@ -58,7 +58,7 @@ tests/hooks.test.mjs
 tests/marketplace-manifests.test.mjs
 ```
 
-Absent from this tree (searched): Foldkit, Pierre, Fate, TEA, Pack assemble, tokenizer T, desk UI, Signals nav, ledger, cord runner.
+Absent from implementation files (CLI, hooks, skills, manifests, tests — not `docs/`): Foldkit, Pierre, Fate, TEA, Pack assemble, tokenizer T, desk UI, Signals nav, ledger, cord runner. Those names appear in this primer only.
 
 ## Session lease
 

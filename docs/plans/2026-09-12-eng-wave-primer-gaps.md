@@ -42,7 +42,7 @@ Closest nouns: `sourceScope` in [`HOOKS.md`](../../HOOKS.md) (repo / branch / tr
 
 **TALK.**
 
-No Pierre. No tree widget. No diff viewer. Grep over this tree for `Pierre` / `Foldkit` / `Fate` / `TEA` is empty (except this primer).
+No Pierre. No tree widget. No diff viewer. Implementation files (CLI, hooks, skills, manifests, tests — excluding `docs/`) contain no `Pierre` / `Foldkit` / `Fate` / `TEA` references. Those names appear only in this primer.
 
 Pierre trees+diffs are locked as the git UI primitive. They do not live here. Do not invent a substitute in this kit.
 
