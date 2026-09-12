@@ -16,6 +16,8 @@ Or MCP-only: copy `examples/cursor.mcp.json` → `.cursor/mcp.json`, replace the
 
 Skills (optional): `npx --yes skills@1.5.23 add op0ai/usectx@v0.4.2`
 
+Marketplace (Cursor / Grok `/marketplace` / cursor.directory): Host `op0mt_` grants only — never a workspace bearer. See [`docs/marketplace-submission.md`](./docs/marketplace-submission.md).
+
 ### Works today
 
 - Hosted leased `search`, `code_graph` (when indexed), `health` / `/readyz`

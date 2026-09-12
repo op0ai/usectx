@@ -1,0 +1,13 @@
+{
+  "name": "usectx",
+  "description": "Public usectx Memory kit: attach hosted MCP, session lease, hop the code graph. Host op0mt_ grants required — never a workspace bearer.",
+  "category": "development",
+  "source": {
+    "source": "url",
+    "url": "https://github.com/op0ai/usectx.git",
+    "sha": "REPLACE_WITH_40_CHAR_COMMIT_SHA"
+  },
+  "homepage": "https://github.com/op0ai/usectx",
+  "keywords": ["usectx", "op0", "ctx.op0.ai"],
+  "domains": ["op0.ai", "ctx.op0.ai", "app.op0.ai"]
+}

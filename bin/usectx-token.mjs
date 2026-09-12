@@ -38,21 +38,32 @@ function readTokenFile(path) {
   }
 }
 
+/**
+ * Workspace CLI / hooks / stdio: explicit CTX_* env, then saved project/home
+ * login, then OP0MT_TOKEN only as a Host-grant fallback.
+ *
+ * Marketplace MCP Authorization stays `${OP0MT_TOKEN}` and must never embed a
+ * workspace bearer. A present Host grant must not shadow usectx login for
+ * ask / search / stdio.
+ */
 export function resolveCtxCliBearer(env = process.env, cwd = process.cwd()) {
   const homeTokenPath = resolveStoredTokenPath(env);
   const projectTokenPath = resolveProjectTokenPath(cwd);
+  const paths = { tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+
   const fromHttp = normalizeCtxEnvToken(env.CTX_HTTP_TOKEN);
   if (fromHttp !== undefined) {
-    return { token: fromHttp, source: "CTX_HTTP_TOKEN", tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+    return { token: fromHttp, source: "CTX_HTTP_TOKEN", ...paths };
   }
   const fromCore = normalizeCtxEnvToken(env.CORE_CTX_TOKEN);
   if (fromCore !== undefined) {
-    return { token: fromCore, source: "CORE_CTX_TOKEN", tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+    return { token: fromCore, source: "CORE_CTX_TOKEN", ...paths };
   }
   const fromAlias = normalizeCtxEnvToken(env.CTX_TOKEN);
   if (fromAlias !== undefined) {
-    return { token: fromAlias, source: "CTX_TOKEN", tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+    return { token: fromAlias, source: "CTX_TOKEN", ...paths };
   }
+
   for (const candidate of resolveProjectTokenCandidates(cwd)) {
     if (candidate === homeTokenPath) continue;
     const project = readTokenFile(candidate);
@@ -62,9 +73,14 @@ export function resolveCtxCliBearer(env = process.env, cwd = process.cwd()) {
   }
   const home = readTokenFile(homeTokenPath);
   if (home !== undefined) {
-    return { token: home, source: "home", tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+    return { token: home, source: "home", ...paths };
   }
-  return { tokenPath: homeTokenPath, homeTokenPath, projectTokenPath };
+
+  const fromHostGrant = normalizeCtxEnvToken(env.OP0MT_TOKEN);
+  if (fromHostGrant !== undefined) {
+    return { token: fromHostGrant, source: "OP0MT_TOKEN", ...paths };
+  }
+  return paths;
 }
 
 export function applyResolvedBearerToEnv(env = process.env, cwd = process.cwd()) {

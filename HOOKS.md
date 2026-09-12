@@ -80,3 +80,7 @@ The gate rejects empty commands, missing security events, missing hook scripts, 
 - `usectx search "<q>"` — search indexed workspace evidence
 - `usectx validate-hooks` — validate non-empty commands, failClosed, and hook contracts
 - `usectx extract` / `usectx ingest` / `usectx inspect` — posture helpers; extract/ingest tell honesty when the door is absent
+
+This pack does **not** ship `usectx agent` or `usectx packet` commands. Those names are hosted MCP tools on `op0mt_` grants (`agent_identity`, `action_invoke`, `packet_export`), not kit CLIs.
+
+Marketplace Cursor Plugin MCP uses `${OP0MT_TOKEN}` (Host grant) and must never embed a workspace bearer. CLI / hooks / stdio resolve `CTX_*` first, then a saved project or home login, then `OP0MT_TOKEN` only when no workspace credential exists — so a Host grant cannot shadow `usectx ask` / `search`. See [`docs/marketplace-submission.md`](docs/marketplace-submission.md).
