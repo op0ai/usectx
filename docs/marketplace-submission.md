@@ -8,7 +8,8 @@ Submit the **public GitHub repo** `https://github.com/op0ai/usectx`. Do not past
 
 | Surface | In this GH kit |
 | --- | --- |
-| Agent Plugin `plugin.json` + token-free `mcp.json` | Yes |
+| Agent Plugin `plugin.json` + token-free `mcp.json` | Yes (portable; required) |
+| Optional root `.mcp.json` (Grok / cursor.directory) | Yes when present; token-free companion, not Agent Plugin-required |
 | Cursor Plugin `.cursor-plugin/plugin.json` + Host-grant MCP | Yes |
 | Grok Build `.grok-plugin/plugin.json` | Yes |
 | Skills (`attach`, `session`, `retrieve`, `code-graph`, `extract`) | Yes |
@@ -29,7 +30,9 @@ Marketplace listings must describe attach / MCP / skills / hooks that ship here.
 - Human/workspace sessions still use `usectx login` or a client-owned `.cursor/mcp.json` (see [`examples/cursor.mcp.json`](../examples/cursor.mcp.json)). That path is **not** the marketplace plugin secret.
 - `op0mt_` grants are hook-restricted to `agent_identity`, `action_invoke`, `packet_export`. Leased `search` / `code_graph` stay on workspace bearers in the operator’s own client config.
 
-Cursor marketplace MCP substitutes `${OP0MT_TOKEN}` from Plugins → Configure. Pack `mcp.json` / `.mcp.json` stay token-free.
+Cursor marketplace MCP substitutes `${OP0MT_TOKEN}` from Plugins → Configure. Pack Agent Plugin `mcp.json` stays token-free. Root `.mcp.json` is an optional Grok / cursor.directory companion (also token-free when present) — not required for Agent Plugins.
+
+CLI / hooks / stdio bearer order: explicit `CTX_*` env → saved project/home workspace login → `OP0MT_TOKEN` only if no workspace credential exists. A Host grant must not shadow `usectx login` for `ask` / `search`.
 
 ---
 

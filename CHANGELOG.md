@@ -28,7 +28,7 @@ Public-kit manifests for Cursor Marketplace, Grok Build, and cursor.directory. N
 - **Grok Build**: `.grok-plugin/plugin.json` and a single-plugin `.grok-plugin/marketplace.json` for `grok plugin marketplace add`.
 - **Docs**: `docs/marketplace-submission.md` (Cursor publish checklist, xAI SHA-pinned entry template, cursor.directory form). Ready catalog JSON: `docs/marketplace/xai-official.entry.json`.
 - **Honest surface**: this GH kit does not ship `usectx agent` / `usectx packet` CLIs. `op0mt_` grants stay limited to hosted `agent_identity`, `action_invoke`, `packet_export`.
-- Bearer resolver also reads `OP0MT_TOKEN` so marketplace hooks see the Host grant without a workspace bearer in plugin config.
+- Bearer resolver reads `OP0MT_TOKEN` only after explicit `CTX_*` env and a saved project/home workspace login, so a Host grant cannot shadow `usectx ask` / `search` / stdio. Marketplace MCP Authorization stays `${OP0MT_TOKEN}` (never a workspace bearer).
 
 ## [0.3.1] — 2026-09-11
 

@@ -72,6 +72,8 @@ Same public repo: [`https://github.com/op0ai/usectx`](https://github.com/op0ai/u
 
 **Host `op0mt_` grants are required** for marketplace plugin MCP. Configure the Host-issued `op0mt_` token (Cursor: Plugins → Configure → `OP0MT_TOKEN`). **Never** put a workspace bearer (`ctx_ws_…` / `CTX_HTTP_TOKEN`) in plugin config or a listing.
 
+CLI / hooks / stdio still prefer a workspace login: explicit `CTX_*` env, then saved project/home token, then `OP0MT_TOKEN` only if no workspace credential exists. A Host grant must not shadow `usectx ask` / `search`.
+
 `op0mt_` is hook-restricted to hosted tools `agent_identity`, `action_invoke`, and `packet_export`. This GitHub kit does **not** ship `usectx agent` or `usectx packet` CLIs — those names exist only as door-side MCP tools, not as kit binaries. Leased `search` / `code_graph` stay on a workspace bearer in **your** client MCP (`usectx login` or [`examples/cursor.mcp.json`](examples/cursor.mcp.json)), not in the marketplace secret.
 
 Manifests: Agent Plugin [`plugin.json`](plugin.json), Cursor [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json), Grok [`.grok-plugin/plugin.json`](.grok-plugin/plugin.json).

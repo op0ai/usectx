@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { handleSessionStart, handleBeforeMCPExecution } from "../hooks/usectx-hook.mjs";
-import { resolveCtxCliBearer } from "../bin/usectx-token.mjs";
+import { applyResolvedBearerToEnv, resolveCtxCliBearer } from "../bin/usectx-token.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const KIT_VERSION = "0.4.2";
@@ -18,7 +19,6 @@ const MANIFEST_PATHS = {
   grokMarketplace: resolve(REPO_ROOT, ".grok-plugin/marketplace.json"),
   claudePlugin: resolve(REPO_ROOT, ".claude-plugin/plugin.json"),
   packMcp: resolve(REPO_ROOT, "mcp.json"),
-  packDotMcp: resolve(REPO_ROOT, ".mcp.json"),
   xaiEntry: resolve(REPO_ROOT, "docs/marketplace/xai-official.entry.json"),
   submissionDoc: resolve(REPO_ROOT, "docs/marketplace-submission.md"),
   versionFile: resolve(REPO_ROOT, "VERSION"),
@@ -26,6 +26,26 @@ const MANIFEST_PATHS = {
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
+}
+
+const OPTIONAL_PACK_DOT_MCP = resolve(REPO_ROOT, ".mcp.json");
+
+function withTempHomeAndCwd(fn) {
+  const home = mkdtempSync(join(tmpdir(), "usectx-home-"));
+  const cwd = mkdtempSync(join(tmpdir(), "usectx-cwd-"));
+  try {
+    return fn(home, cwd);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+function writeWorkspaceToken(dir, relativePath, token) {
+  const tokenPath = join(dir, relativePath);
+  mkdirSync(dirname(tokenPath), { recursive: true });
+  writeFileSync(tokenPath, `${token}\n`, { encoding: "utf8" });
+  return tokenPath;
 }
 
 function collectStrings(value, acc = []) {
@@ -93,12 +113,26 @@ test("Cursor Plugin points at Host-grant MCP and declares OP0MT_TOKEN only", () 
 
 test("pack MCP manifests stay token-free", () => {
   const pack = readJson(MANIFEST_PATHS.packMcp);
-  const dotted = readJson(MANIFEST_PATHS.packDotMcp);
-  const blob = JSON.stringify({ pack, dotted });
+  const manifests = { pack };
+  if (existsSync(OPTIONAL_PACK_DOT_MCP)) {
+    manifests.dotted = readJson(OPTIONAL_PACK_DOT_MCP);
+  }
+  const blob = JSON.stringify(manifests);
   assert.equal(blob.includes("Authorization"), false);
   assert.equal(blob.includes("CTX_HTTP_TOKEN"), false);
   assert.equal(blob.includes("op0mt_"), false);
   assert.equal(blob.includes("ctx_ws_"), false);
+});
+
+test("root .mcp.json is optional; Agent Plugin mcp.json is the required pack file", () => {
+  assert.equal(existsSync(MANIFEST_PATHS.packMcp), true);
+  const pack = readJson(MANIFEST_PATHS.packMcp);
+  assert.equal(pack.$schema, "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json");
+  if (existsSync(OPTIONAL_PACK_DOT_MCP)) {
+    const dotted = readJson(OPTIONAL_PACK_DOT_MCP);
+    assert.equal(typeof dotted.mcpServers, "object");
+    assert.equal(JSON.stringify(dotted).includes("Authorization"), false);
+  }
 });
 
 test("Grok self-hosted catalog is local and brand-scoped", () => {
@@ -130,9 +164,9 @@ test("marketplace manifests never embed workspace bearers or live secrets", () =
     MANIFEST_PATHS.grokPlugin,
     MANIFEST_PATHS.grokMarketplace,
     MANIFEST_PATHS.packMcp,
-    MANIFEST_PATHS.packDotMcp,
     MANIFEST_PATHS.xaiEntry,
   ];
+  if (existsSync(OPTIONAL_PACK_DOT_MCP)) paths.push(OPTIONAL_PACK_DOT_MCP);
   for (const path of paths) {
     const strings = collectStrings(readJson(path));
     for (const value of strings) {
@@ -167,37 +201,61 @@ test("README marketplace section requires Host op0mt_ grants", () => {
   assert.ok(readme.includes("does **not** ship `usectx agent`"));
 });
 
-test("bearer resolver accepts OP0MT_TOKEN after CTX_* env aliases", () => {
-  const isolated = resolveCtxCliBearer({ HOME: "/tmp/usectx-no-home-token" }, "/tmp/usectx-no-project-token");
-  assert.equal(isolated.token, undefined);
+test("bearer resolver prefers CTX_* then saved workspace login over OP0MT_TOKEN", () => {
+  withTempHomeAndCwd((home, cwd) => {
+    const isolated = resolveCtxCliBearer({ HOME: home }, cwd);
+    assert.equal(isolated.token, undefined);
 
-  const fromGrant = resolveCtxCliBearer(
-    { HOME: "/tmp/usectx-no-home-token", OP0MT_TOKEN: "op0mt_marketplace_grant" },
-    "/tmp/usectx-no-project-token"
-  );
-  assert.equal(fromGrant.token, "op0mt_marketplace_grant");
-  assert.equal(fromGrant.source, "OP0MT_TOKEN");
+    const fromGrant = resolveCtxCliBearer({ HOME: home, OP0MT_TOKEN: "op0mt_marketplace_grant" }, cwd);
+    assert.equal(fromGrant.token, "op0mt_marketplace_grant");
+    assert.equal(fromGrant.source, "OP0MT_TOKEN");
 
-  const ctxWins = resolveCtxCliBearer(
-    {
-      HOME: "/tmp/usectx-no-home-token",
-      CTX_HTTP_TOKEN: "ctx_ws_human",
-      OP0MT_TOKEN: "op0mt_marketplace_grant",
-    },
-    "/tmp/usectx-no-project-token"
-  );
-  assert.equal(ctxWins.token, "ctx_ws_human");
-  assert.equal(ctxWins.source, "CTX_HTTP_TOKEN");
+    const ctxWins = resolveCtxCliBearer(
+      { HOME: home, CTX_HTTP_TOKEN: "ctx_ws_human", OP0MT_TOKEN: "op0mt_marketplace_grant" },
+      cwd
+    );
+    assert.equal(ctxWins.token, "ctx_ws_human");
+    assert.equal(ctxWins.source, "CTX_HTTP_TOKEN");
+
+    writeWorkspaceToken(home, ".op0/usectx/token", "ctx_ws_saved_home");
+    const homeWins = resolveCtxCliBearer({ HOME: home, OP0MT_TOKEN: "op0mt_marketplace_grant" }, cwd);
+    assert.equal(homeWins.token, "ctx_ws_saved_home");
+    assert.equal(homeWins.source, "home");
+
+    writeWorkspaceToken(cwd, "usectx/token", "ctx_ws_saved_project");
+    const projectWins = resolveCtxCliBearer({ HOME: home, OP0MT_TOKEN: "op0mt_marketplace_grant" }, cwd);
+    assert.equal(projectWins.token, "ctx_ws_saved_project");
+    assert.equal(projectWins.source, "project");
+
+    const applied = applyResolvedBearerToEnv(
+      { HOME: home, OP0MT_TOKEN: "op0mt_marketplace_grant" },
+      cwd
+    );
+    assert.equal(applied.token, "ctx_ws_saved_project");
+    assert.equal(applied.source, "project");
+  });
 });
 
 test("hooks allow Host OP0MT_TOKEN without CTX_HTTP_TOKEN", () => {
-  const env = { OP0MT_TOKEN: "op0mt_marketplace_grant", HOME: "/tmp/usectx-no-home-token" };
-  const start = handleSessionStart({}, env, "/tmp/usectx-no-project-token");
-  assert.equal(start.permission, "allow");
+  withTempHomeAndCwd((home, cwd) => {
+    const env = { OP0MT_TOKEN: "op0mt_marketplace_grant", HOME: home };
+    const start = handleSessionStart({}, env, cwd);
+    assert.equal(start.permission, "allow");
 
-  const allowed = handleBeforeMCPExecution({ tool_name: "agent_identity" }, env, "/tmp/usectx-no-project-token");
-  assert.equal(allowed.permission, "allow");
+    const allowed = handleBeforeMCPExecution({ tool_name: "agent_identity" }, env, cwd);
+    assert.equal(allowed.permission, "allow");
 
-  const denied = handleBeforeMCPExecution({ tool_name: "search" }, env, "/tmp/usectx-no-project-token");
-  assert.equal(denied.permission, "deny");
+    const denied = handleBeforeMCPExecution({ tool_name: "search" }, env, cwd);
+    assert.equal(denied.permission, "deny");
+  });
+});
+
+test("hooks prefer saved workspace login over OP0MT_TOKEN so search stays allowed", () => {
+  withTempHomeAndCwd((home, cwd) => {
+    writeWorkspaceToken(home, ".op0/usectx/token", "ctx_ws_saved_home");
+    const env = { OP0MT_TOKEN: "op0mt_marketplace_grant", HOME: home };
+    const search = handleBeforeMCPExecution({ tool_name: "search" }, env, cwd);
+    assert.equal(search.permission, "allow");
+    assert.equal(search.continue, true);
+  });
 });
